@@ -1,0 +1,33 @@
+name: AOSP17 PE system/media archived Qualcomm audio-config audit
+
+on:
+  push:
+    branches:
+      - audit/a17-mondrian-system-media-20261104
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  legacy-media:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            .github
+            docs
+            tools
+            audio/include/system/audio_config.h
+            audio/Android.bp
+            audio_utils/Android.bp
+            audio_route/Android.bp
+            camera/Android.bp
+            TEST_MAPPING
+          sparse-checkout-cone-mode: false
+      - name: Check PE audio paths and native media/ABI module inventory
+        run: python3 tools/verify_a17_system_media_legacy.py
