@@ -41,8 +41,8 @@ Official AOSP17 `audio/include/system/audio_config.h` blob `6117f21442e8834e96fa
 
 - [x] Archived PE source revision and Qualcomm QSSI audio path patch reviewed.
 - [x] Official Android17 exact source tree and generic audio config fallback identified.
-- [x] Host-only archive/source CI authored.
-- [ ] Exact official source-tag integrity CI confirmation.
+- [x] Historical PE Qualcomm audio config/ABI source [CI PASS #41796715199](https://github.com/PixelExperience-Reborn/system_media/actions/runs/41796715199).
+- [x] Official Android17 exact tagged source tree, audio config precedence, BT offload policy and key native Soong identities [CI PASS #41796715356](https://github.com/PixelExperience-Reborn/system_media/actions/runs/41796715356). **Source-only**, not a full platform compile or mondrian device test.
 - [ ] Android17 Soong/AIDL/HIDL audio-camera build and blob ABI checks.
 - [ ] Real mondrian audio policy, HAL, CTS/VTS and recovery/OTA tests.
 
