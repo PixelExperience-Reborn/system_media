@@ -1,0 +1,75 @@
+name: AOSP17 official system media tagged audio-config and ABI source integrity
+
+on:
+  push:
+    branches:
+      - audit/a17-mondrian-system-media-20261104
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  official-media:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            .github
+            docs
+            tools
+          sparse-checkout-cone-mode: false
+      - name: Verify AOSP17 audio policy config precedence and native audio/camera module boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64
+          import json
+          from urllib.request import Request,urlopen
+
+          base="https://android.googlesource.com/platform/system/media/+/refs/tags/android-17.0.0_r1/"
+          def get(path,format):
+              with urlopen(Request(base+path+"?format="+format,
+                                   headers={"User-Agent":"PixelExperience-Reborn-A17-Media-Audit"}),
+                           timeout=60) as response:
+                  return response.read()
+          def read(path):
+              return base64.b64decode(get(path,"TEXT")).decode("utf-8")
+
+          raw=get("","JSON").decode("utf-8")
+          assert raw.startswith(")]}'"), "not tagged Gitiles source"
+          tree=json.loads(raw.split("\n",1)[1])
+          assert tree["id"]=="a70b18bcf8df9ea56f82c32fab883e5fff23a1ea",tree.get("id")
+          names={x["name"] for x in tree["entries"]}
+          for name in ("audio","audio_utils","audio_effects","audio_route",
+                       "alsa_utils","camera","radio"):
+              assert name in names,name
+
+          audio=read("audio/include/system/audio_config.h")
+          audiobp=read("audio/Android.bp")
+          utils=read("audio_utils/Android.bp")
+          route=read("audio_route/Android.bp")
+          camera=read("camera/Android.bp")
+
+          assert "audio_get_configuration_paths()" in audio
+          assert 'property_get("ro.boot.product.vendor.sku"' in audio
+          assert '"/odm/etc"' in audio and '"/vendor/etc"' in audio and '"/system/etc"' in audio
+          assert '"/vendor/etc/audio/sku_"' in audio
+          assert "ro.vendor.qti.va_aosp.support" not in audio
+          assert '"_qssi"' not in audio
+          assert "audio_get_audio_policy_config_file()" in audio
+          assert "persist.bluetooth.a2dp_offload.disabled" in audio
+          assert "persist.bluetooth.leaudio_offload.disabled" in audio
+          for module,soong in (("libaudio_system_headers",audiobp),
+                               ("libaudioutils",utils),("libaudioroute",route),
+                               ("libcamera_metadata",camera)):
+              assert f'name: "{module}"' in soong,module
+          assert '"com.android.media"' in audiobp
+          print("PASS: pinned AOSP17 r1 system/media tree and default audio config/BT offload plus Soong module ownership")
+          print("NOT TESTED: platform Soong/AIDL or vendor audio HAL, QSSI vendor files, CTS, camera or mondrian.")
+          PY
